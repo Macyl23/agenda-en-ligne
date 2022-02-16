@@ -1,0 +1,28 @@
+
+.home{
+    background-color:powderblue;
+    height:650px;
+    text-align: center;
+    overflow: hidden;
+    position: relative;
+    
+    .image{
+        height: 50px;
+        margin-left: 50%;
+    }
+
+    .welcome{
+        margin-top: 1cm;
+        font-size: 1cm;
+        color:black;
+    }
+    .logInSignUp{
+        margin-top: 1cm;
+        display: flex;
+        justify-content: center;
+        
+    }
+    ul{
+        list-style-type: none;
+    }
+}

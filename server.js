@@ -4,8 +4,8 @@ const bodyParser=require('body-parser')
 require('dotenv').config({path: './config/.env'})
 require('./config/db');
 
-const connexionRouter= require('./routes/create.account')
-const indexxRouter=require('./routes/index')
+const userRouter= require('./routes/user.routes')
+const indexRouter=require('./routes/index')
 
 app.use(bodyParser.json())
 app.use(bodyParser.urlencoded({extended: true}))
@@ -13,8 +13,8 @@ app.use(bodyParser.urlencoded({extended: true}))
 
 
 //Utilisation des routes
-app.use("/",indexxRouter)
-app.use("/create.account",connexionRouter)
+app.use("/",indexRouter)
+app.use("/user",userRouter)
 
 
 //Création de notre serveur
