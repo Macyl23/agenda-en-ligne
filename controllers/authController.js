@@ -40,3 +40,9 @@ module.exports.signIN = async(req , res ) => {
         res.status(200).json(err);
     }
 }
+
+// fonction qui permet la déconnexion
+module.exports.logout= (req , res) => {
+    res.cookie('jwt', '' , {maxAge: 1});
+    res.redirect('/');
+}
