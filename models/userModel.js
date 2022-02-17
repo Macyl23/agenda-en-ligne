@@ -1,5 +1,6 @@
 const mongoose=require("mongoose");
 require('mongoose-type-email')
+const bcrypt = require('bcrypt');
 
 
 // Schéma d'un client
@@ -49,5 +50,14 @@ const userSchema= new mongoose.Schema(
     },
     {typeKey: '$type'}
 )
+
+//crypter le mot de passe
+userSchema.pre("save", async function(next){
+    const salt= await bcrypt.genSalt();
+    this.password= await bcrypt.hash(this.password , salt);
+    next();
+})
+
+
 const UserModel= mongoose.model('user', userSchema)
 module.exports= UserModel
