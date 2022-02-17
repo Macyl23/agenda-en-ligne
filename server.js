@@ -7,7 +7,7 @@ require('./db');
 
 const indexRouter = require("./routes/index")
 const userRouter= require("./routes/user.routes");
-const { checkUser } = require('./middleware/authmiddleware');
+const { checkUser, requireAuth } = require('./middleware/authmiddleware');
 
 // Instructions qui permet de parser les informations du user
 app.use(bodyParser.json())
@@ -16,6 +16,9 @@ app.use(cookieParser());
 
 //jwt
 app.use('*', checkUser);
+app.use('/jwtid', requireAuth, (req, res) => {
+    res.status(200).send(res.locals.user._id);
+})
 
 
 //Accés aux pages
