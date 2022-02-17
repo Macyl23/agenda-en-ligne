@@ -1,7 +1,14 @@
 const UserModel= require("../models/userModel");
 const bcrypt= require('bcrypt');
+const jwt = require("jsonwebtoken")
+const maxAge=3 * 24 * 60 * 60 * 1000;
 
-
+// fonction qui crée un jeton jwt
+const createToken = (id) =>{
+    return jwt.sign({id} , process.env.TOKEN_SECRET,{
+        expiresIn: maxAge
+    })
+}
 
 // fonction qui permet de créer son compte
 module.exports.signUP= async(req,res) => {
@@ -24,7 +31,9 @@ module.exports.signIN = async(req , res ) => {
             const auth= await bcrypt.compare(password , user.password);
             if(auth){
                 console.log("Client trouvé");
-                res.status(200).json({user: user._id})
+                const token= createToken(user._id);
+                res.cookie('jwt', token, {httpOnly: true, maxAge});
+                res.status(200).send({user: user._id})   
             }
         }
     }catch(err){
