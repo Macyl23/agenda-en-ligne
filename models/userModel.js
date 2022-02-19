@@ -3,6 +3,7 @@ require('mongoose-type-email')
 const bcrypt = require('bcrypt');
 
 
+
 // Schéma d'un client
 const userSchema= new mongoose.Schema(
     {
@@ -32,12 +33,15 @@ const userSchema= new mongoose.Schema(
         },
         dateNaiss: {
             type: Date,
-            required:true
+            required:true,
+            min: '1920', // l'age le plus vieux s'agit de 102 ans
+            
         },
         Num_tel: {
-            type: Number,
+            type: String,
             required: true,
-            minlength: 10
+            minlength: 10,
+            maxlength: 12
         },
         resetLink: {
             data: String,
@@ -57,6 +61,20 @@ userSchema.pre("save", async function(next){
     this.password= await bcrypt.hash(this.password , salt);
     next();
 })
+
+
+// Vérification que l'utilisateur existe dans la BD
+userSchema.statics.login = async function(email, password) {
+    const user = await this.findOne({ email });
+    if (user) {
+      const auth = await bcrypt.compare(password, user.password);
+      if (auth) {
+        return user;
+      }
+      throw Error('incorrect password');
+    }
+    throw Error('incorrect email')
+};
 
 
 const UserModel= mongoose.model('user', userSchema)
