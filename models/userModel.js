@@ -37,7 +37,7 @@ const userSchema= new mongoose.Schema(
         Num_tel: {
             type: Number,
             required: true,
-            minLength: 10
+            minlength: 10
         },
         resetLink: {
             data: String,
