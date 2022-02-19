@@ -1,6 +1,7 @@
 const UserModel= require("../models/userModel");
 const bcrypt= require('bcrypt');
-const jwt = require("jsonwebtoken")
+const jwt = require("jsonwebtoken");
+const { signUPerrors, signINerrors } = require("../utils/errors.utils");
 const maxAge=3 * 24 * 60 * 60 * 1000;
 
 // fonction qui crée un jeton jwt
@@ -19,26 +20,23 @@ module.exports.signUP= async(req,res) => {
         res.status(201).json({user: user._id});
     }
     catch(err){
-        res.status(200).send({err})
+        const errors = signUPerrors(err);
+        res.status(200).send({errors})
     }
 }
 
+// fonction qui permet la connexion
 module.exports.signIN = async(req , res ) => {
     const {email , password} = req.body
-    try{
-        const user= await UserModel.findOne({email : email});
-        if(user) {
-            const auth= await bcrypt.compare(password , user.password);
-            if(auth){
-                console.log("Client trouvé");
-                const token= createToken(user._id);
-                res.cookie('jwt', token, {httpOnly: true, maxAge});
-                res.status(200).send({user: user._id})   
-            }
-        }
-    }catch(err){
-        res.status(200).json(err);
-    }
+    try {
+        const user = await UserModel.login(email, password);
+        const token = createToken(user._id);
+        res.cookie('jwt', token, { httpOnly: true, maxAge});
+        res.status(200).json({ user: user._id})
+      } catch (err){
+        const errors = signINerrors(err);
+        res.status(200).json({ errors });
+      }
 }
 
 // fonction qui permet la déconnexion
