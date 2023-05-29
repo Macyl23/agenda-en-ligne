@@ -1,91 +1,78 @@
-const UserModel= require('../models/user.model')
-const jwt = require("jsonwebtoken")
-const maxAge=3 * 24 * 60 * 60 * 1000;
-const bcrypt=require('bcrypt');
-const mailgun = require("mailgun-js");
-const DOMAIN = 'sandbox10d0cfff9e444f16be93d36807510f47.mailgun.org';
-const mg = mailgun({apiKey: process.env.MAILGUN_API_KEY, domain: DOMAIN});
+//fichier gerant la connexion, l'inscription et le deconnexion 
 
+const model = require("../models/userModel");
+const jwt = require("jsonwebtoken");
+const { signUPerrors, signINerrors } = require("../utils/errors");
+const maxAge = 3 * 24 * 60 * 60 * 1000;
+const bcrypt = require("bcrypt");
+
+/**
+ * Fonction qui crée un jeton JWT et l'attribue au user grace a l'identifiant passé en paramètres
+ * @param {String} id L'identifiant de l'utilisateur qui se connecte
+ * @returns {String} Jeton JWT associé à l'identifiant 
+ */
  
+const createToken = (id) => {
+  return jwt.sign({ id }, process.env.TOKEN_SECRET, {
+    expiresIn: maxAge,
+  });
+};
 
-const createToken = (id) =>{
-    return jwt.sign({id} , process.env.TOKEN_SECRET,{
-        expiresIn: maxAge
-    })
-}
-//fonction qui permet de créer son compte
-module.exports.signUP= async(req,res) => {
-    const {nom, prenom, email , password, dateNaiss, Num_tel } = req.body
+/**
+ * fonction qui permet a l'utilsateur de créer son compte
+ * @param {Object} req Toutes les informations que l'utilisateur entre à son inscription
+ * @param {Object} res Docs de l'utilisateur crée dans la BD
+ * @returns {JSON} identifiant du client si l'inscrirption a bien été effectué, l'erreur sinon
+ */
 
-    try {
-        const user= await UserModel.create({ nom , prenom,email,password,dateNaiss,Num_tel});
-        res.status(201).json({user: user._id});
+module.exports.signUP = async (req, res) => {
+  try {
+    const newClient = new model.User({
+      nom: req.body.nom,
+      prenom: req.body.prenom,
+      dateNaiss: req.body.dateNaiss,
+      Num_tel: req.body.Num_tel,
+      email: req.body.email,
+      password: req.body.password,
+    });
+    if(req.body.password){
+      const salt = await bcrypt.genSalt();
+      newClient.password = await bcrypt.hash(newClient.password, salt);
     }
-    catch(err){
-        res.status(200).send({err})
-    }
-}
+    const client = await newClient.save();
+    res.status(201).json({ client: client._id });
+  } catch (err) {
+    const errors = signUPerrors(err);
+    res.status(200).send({ errors });
+  }
+};
 
-// Controle que l'utilisateur existe dans la BD
-module.exports.signIn= async (req, res) => {
-    const {email , password} = req.body
-    try{
-        const user= await UserModel.findOne({email : email});
-        console.log(user._id);
-        if(user) {
-            console.log("email trouve")
-            const auth= await bcrypt.compare(password , user.password);
-            if(auth){
-                console.log("mot de passe trouve");
-                
-            }
-        }
-        const token= createToken(user._id);
-        res.cookie('jwt', token, {httpOnly: true, maxAge});
-        res.status(200).send({user: user._id})   
-    }catch(err){
-        res.status(200).json(err);
-    }
+/**
+ * Fonction qui permet la connexion et attribution d'un jeton JWT une fois la connexion établie
+ * @param {String} req.body.email L'email de l'utilisateur
+ * @param {String} req.body.password Le mot de passe de l'utilisateur 
+ * @returns {json} identifiant du client si l'inscrirption a bien été effectué, l'erreur sinon
+ */
+module.exports.signIN = async (req, res) => {
+  const { email, password } = req.body;
+  try {
+    const user = await model.User.login(email, password);
+    const token = createToken(user._id);
+    res.cookie("jwt", token, { httpOnly: true, maxAge });
+    res.status(200).json({ user: user._id });
+  } catch (err) {
+    const errors = signINerrors(err);
+    res.status(200).json({ errors });
+  }
+};
 
-    
-}
-module.exports.logOut= (req , res) => {
-    res.cookie('jwt' ,  '' , {maxAge: 1});
-    res.redirect('/');
-}
-
-module.exports.forgotpassword = (req ,res) =>{
-    const {email } =req.body;
-
-    UserModel.findOne({ email }, (err , user) => {
-        
-        if(err || !user){
-            return res.status(200).json({error: "User with this email doesn't exist" });
-        }
-        const token=jwt.sign({_id: user._id} , process.env.JWT_PASS_FORGOT ,{expiresIn : '20m'});
-        const data = {
-            from: 'test@up.com',
-            to: email,
-            subject: "Reset Password",
-            html:`
-                <h2>Please click on the link</h2>
-                <p> ${process.env.CLIENT_URL}/resetpassword/${token}</p>
-            `  
-        };  
-        return UserModel.updateOne({resetLink: token}, function(err, success){
-            if(err){
-                return res.status(200).json({error: "link reset password error" });
-            }else{
-                mg.messages().send(data , function (error, body){
-                    if(error){
-                        return res.json({
-                            error: error.message
-                        })
-                    }
-                    return res.json({message : "Email sent succesfully"});
-                })
-            }
-         })
-
-    })
-}
+/**
+ * fonction qui permet la déconnexion
+ *
+ * @param {Object} res Le cookie qui a été attribué à l'utilisateur 
+ * @returns {*} suppression du jeton JWT et redirection vers la page d'acceuil
+ */
+module.exports.logout = (req, res) => {
+  res.cookie("jwt", "", { maxAge: 1 });
+  res.redirect("/");
+};
