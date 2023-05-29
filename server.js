@@ -50,9 +50,9 @@ app.use('/pro',proRouter);
 //Création de notre port serveur
 
 
-  app.get("/",(req,res) => {
-    res.send("Running")
-  })
+app.get("/",(req,res) => {
+  res.send("Running")
+})
 
 app.listen(PORT, () => {
    console.log('Listening on port '+PORT);
